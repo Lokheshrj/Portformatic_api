@@ -1,7 +1,7 @@
-# generator/urls.py
 from django.urls import path
-from . import views
+from .views import PortfolioFormView, home
 
 urlpatterns = [
-    path("", views.home, name="home"),
+    path("portfolio/", PortfolioFormView.as_view(), name="portfolio-form"),
+    path("", home, name="home"),
 ]
