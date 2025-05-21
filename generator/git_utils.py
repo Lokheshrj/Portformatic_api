@@ -19,7 +19,7 @@ def remove_readonly(func, path, excinfo):
         raise
 
 
-def create_user_branch(branch_name):
+def create_user_branch(branch_name, user_data):  # ✅ Added `user_data` param
     repo_url = os.getenv("REPO_URL")
     github_username = os.getenv("GITHUB_USERNAME")
     github_token = os.getenv("GITHUB_TOKEN")
@@ -39,20 +39,15 @@ def create_user_branch(branch_name):
 
         print("✅ Cloned successfully. Checking out 'main' branch...")
         repo.git.checkout("main")
-
         origin = repo.remote(name="origin")
 
-        # Check if branch exists on remote
+        # Handle existing remote branches
         remote_branches = [ref.name.split("/")[-1] for ref in origin.refs]
         if branch_name in remote_branches:
-            print(
-                f"♻️ Branch '{branch_name}' exists on remote. Checking out and resetting local branch..."
-            )
+            print(f"♻️ Remote branch '{branch_name}' exists. Syncing...")
             if branch_name in repo.heads:
-                repo.delete_head(branch_name, force=True)  # Delete local if exists
-
+                repo.delete_head(branch_name, force=True)
             repo.git.checkout(f"origin/{branch_name}", b=branch_name)
-            # Reset local branch hard to remote
             repo.git.reset("--hard", f"origin/{branch_name}")
         else:
             print(f"🔧 Creating new branch '{branch_name}' from main...")
@@ -60,12 +55,17 @@ def create_user_branch(branch_name):
                 repo.delete_head(branch_name, force=True)
             repo.git.checkout("-b", branch_name)
 
-        dummy_file_path = os.path.join(temp_dir, "README.md")
-        with open(dummy_file_path, "a") as f:
-            f.write(f"\nPortfolio for {branch_name}\n")
+        # ✅ Update user_data.json
+        json_path = os.path.join(temp_dir, "src", "templates", "user_data.json")
+        os.makedirs(os.path.dirname(json_path), exist_ok=True)
 
-        repo.index.add(["README.md"])
-        repo.index.commit(f"📝 Updated portfolio branch for {branch_name}")
+        with open(json_path, "w") as json_file:
+            import json
+
+            json.dump(user_data, json_file, indent=4)
+
+        repo.index.add([json_path])
+        repo.index.commit(f"🔄 Updated user_data.json for {branch_name}")
 
         print("🚀 Pushing branch to origin...")
         push_info = origin.push(refspec=f"{branch_name}:{branch_name}")
