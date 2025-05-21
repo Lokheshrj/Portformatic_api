@@ -11,40 +11,30 @@ def home(request):
 
 
 def prepare_user_data(data):
-    # Parse skills string into list
-    skills_raw = data.get("skills", "")
-    skills = [skill.strip() for skill in skills_raw.split(",") if skill.strip()]
-
-    # Parse projects string into list of dicts with example description
-    projects_raw = data.get("projects", "")
-    projects = []
-    for proj_name in projects_raw.split(","):
-        proj_name = proj_name.strip()
-        if proj_name:
-            projects.append(
-                {
-                    "name": f"{proj_name} Project",
-                    "description": f"Built a {proj_name.lower()} project.",
-                }
-            )
-    linkedin = data.get("linkedin", "")
-    github = data.get("github", "")
-    # Fix linkedin and github URLs if needed (optional)
-    if linkedin and not linkedin.startswith("http"):
-        linkedin = "https://" + linkedin
-    if github and not github.startswith("http"):
-        github = "https://" + github
-
+    # Directly map most simple fields
     user_data = {
-        "name": data.get("full_name", ""),
-        "title": data.get("bio", ""),  # Or customize as needed
-        "email": data.get("email", ""),
-        "about": data.get("bio", ""),
-        "skills": skills,
-        "projects": projects,
-        "linkedin": linkedin,
-        "github": github,
+        "name": data.get("name", ""),
+        "phone": data.get("phone", ""),
+        "email": data.get("mail", ""),
+        "location": data.get("location", ""),
+        "address": data.get("address", ""),
+        "education": data.get("education", []),  # List of dicts
+        "role": data.get("role", ""),
+        "description": data.get("description", ""),
+        "area_of_interest": data.get("area_of_interest", ""),
+        "achievements": data.get("achievements", ""),
+        "technical_skill": data.get("technical_skill", ""),
+        "soft_skill": data.get("soft_skill", ""),
+        "projects": data.get("projects", []),  # List of dicts
+        "git_link": data.get("git_link", ""),
+        "linkedin": data.get("linkedin", ""),
     }
+
+    # Fix URLs for git_link and linkedin if needed
+    if user_data["git_link"] and not user_data["git_link"].startswith("http"):
+        user_data["git_link"] = "https://" + user_data["git_link"]
+    if user_data["linkedin"] and not user_data["linkedin"].startswith("http"):
+        user_data["linkedin"] = "https://" + user_data["linkedin"]
 
     return user_data
 
@@ -52,14 +42,13 @@ def prepare_user_data(data):
 class PortfolioFormView(APIView):
     def post(self, request):
         serializer = PortfolioFormSerializer(data=request.data)
-
         if serializer.is_valid():
             data = serializer.validated_data
-            username = data.get("username")
-            branch_name = username  # or f"user-{username}"
-
+            username = data.get("name")
+            branch_name = username.replace(" ", "_").lower()
+            # or f"user-{username}"
             user_data = prepare_user_data(data)
-
+            print("\n\ndata:\n", user_data)
             try:
                 create_user_branch(branch_name, user_data)
             except Exception as e:
